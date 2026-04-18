@@ -4,10 +4,11 @@ export const getIncidencias = async (req, res) => {
     try {
         const [resultado] = await db.query(`SELECT i.id, i.descripcion, i.fecha_reporte, i.estado,
         JSON_OBJECT('id', u.id, 'nombre', u.nombre_user, 'email', u.email) AS usuario,
-        JSON_OBJECT('id', p.id, 'nombre', p.nombre, 'categoria', p.categoria) AS producto
+        JSON_OBJECT('id', p.id, 'nombre', p.nombre, 'categoria', c.nombre) AS producto
         FROM incidencias i
         INNER JOIN usuarios u ON i.id_usuario = u.id
-        INNER JOIN productos p ON i.id_usuario = p.id
+        INNER JOIN productos p ON i.id_producto = p.id
+        INNER JOIN categorias c ON p.id_categoria = c.id
         ORDER BY i.id DESC     
     `);
         res.json(resultado);
@@ -23,10 +24,11 @@ export const getIncidenciaId = async (req, res) => {
 
         const [resultado] = await db.query(`SELECT i.id, i.descripcion, i.fecha_reporte, i.estado,
         JSON_OBJECT('id', u.id, 'nombre', u.nombre_user, 'email', u.email) AS usuario,
-        JSON_OBJECT('id', p.id, 'nombre', p.nombre, 'categoria', p.categoria) AS producto
+        JSON_OBJECT('id', p.id, 'nombre', p.nombre, 'categoria', c.nombre) AS producto
         FROM incidencias i
         INNER JOIN usuarios u ON i.id_usuario = u.id
         INNER JOIN productos p ON i.id_producto = p.id
+        INNER JOIN categorias c ON p.id_categoria = c.id
         WHERE i.id = ?
     `, [id]);
 

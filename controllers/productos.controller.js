@@ -9,7 +9,7 @@ const storage = multer.diskStorage({
 });
 
 export const upload = multer({ storage });
-const base_url = process.env.BASE_URL || "http://localhost:3000";
+const base_url = process.env.BASE_URL || "http://10.0.2.2:3000";
 
 const urlImagen = (archivo) => {
     return archivo ? `${base_url}/uploads/${archivo}` : null;
@@ -21,7 +21,10 @@ const formatoProducto = (p) => ({
 
 export const getProductos = async (req, res) => {
     try {
-        const [resultado] = await db.query("SELECT * FROM productos");
+        const [resultado] = await db.query(`SELECT p.*, c.nombre AS categoria_nombre
+        FROM productos p
+        LEFT JOIN categorias c ON p.id_categoria = c.id`
+    );
         const productos = resultado.map(formatoProducto);
         res.json(productos);
 
@@ -33,7 +36,10 @@ export const getProductos = async (req, res) => {
 export const getProductosId = async (req, res) => {
     try {
         const {id} = req.params;
-        const [resultado] = await db.query("SELECT * FROM productos WHERE id = ?", 
+        const [resultado] = await db.query(`SELECT p.*, c.nombre AS categoria_nombre
+        FROM productos p
+        LEFT JOIN categorias c ON p.id_categoria = c.id
+        WHERE p.id = ?`, 
             [id]
         );
 
@@ -51,18 +57,18 @@ export const getProductosId = async (req, res) => {
 
 export const crearProductos = async (req, res) => {
     try {
-        const { nombre, descripcion, categoria, precio_unidad, unidades } = req.body;
+        const { nombre, descripcion, id_categoria, precio_unidad, unidades } = req.body;
         const imagen = req.file ? req.file.filename : null;
 
         if(!nombre || precio_unidad == null || unidades == null){
             return res.status(400).json({error: "Faltan campos requeridos"});
         }
 
-        const [resultado] = await db.query("INSERT INTO productos (nombre, descripcion, categoria, precio_unidad, unidades, imagen) VALUES (?, ?, ?, ?, ?, ?)",
-            [nombre, descripcion, categoria, precio_unidad, unidades, imagen]
+        const [resultado] = await db.query("INSERT INTO productos (nombre, descripcion, id_categoria, precio_unidad, unidades, imagen) VALUES (?, ?, ?, ?, ?, ?)",
+            [nombre, descripcion, id_categoria, precio_unidad, unidades, imagen]
         );
 
-        res.json({id: resultado.insertId, nombre, descripcion, categoria, precio_unidad, unidades, imagen: urlImagen(imagen)});
+        res.json({id: resultado.insertId, nombre, descripcion, id_categoria, precio_unidad, unidades, imagen: urlImagen(imagen)});
 
     } catch(error){
         res.status(500).json({ error: error.message });
@@ -72,7 +78,7 @@ export const crearProductos = async (req, res) => {
 export const actualizarProductos = async (req, res) => {
     try {
         const { id } = req.params;
-        const { nombre, descripcion, categoria, precio_unidad, unidades } = req.body;
+        const { nombre, descripcion, id_categoria, precio_unidad, unidades } = req.body;
 
         const [productoActual] = await db.query("SELECT * FROM productos WHERE id = ?",
             [id]
@@ -97,17 +103,17 @@ export const actualizarProductos = async (req, res) => {
             }
         }
 
-        await db.query("UPDATE productos SET nombre = ?, descripcion = ?, categoria = ?, precio_unidad = ?, unidades = ?, imagen = ? WHERE id = ?", 
+        await db.query("UPDATE productos SET nombre = ?, descripcion = ?, id_categoria = ?, precio_unidad = ?, unidades = ?, imagen = ? WHERE id = ?", 
             [nombre || producto.nombre, 
             descripcion || producto.descripcion, 
-            categoria || producto.categoria, 
+            id_categoria || producto.id_categoria, 
             precio_unidad ?? producto.precio_unidad,
             unidades ?? producto.unidades,
             nuevaImagen,
             id]
         );
 
-        res.json({id, nombre, descripcion, categoria, precio_unidad, unidades, imagen: urlImagen(nuevaImagen)});
+        res.json({id, nombre, descripcion, id_categoria, precio_unidad, unidades, imagen: urlImagen(nuevaImagen)});
 
     } catch(error){
         res.status(500).json({ error: error.message });        

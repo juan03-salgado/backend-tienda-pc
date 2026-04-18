@@ -4,7 +4,7 @@ export const getCompras = async (req, res) => {
     try{
         const [resultado] = await db.query(`SELECT cr.id AS id_compra, cr.id_carrito, cr.referencia_pago, cr.fecha_compra, cr.estado, cl.nombre AS cliente,
         JSON_ARRAYAGG(
-            JSON_OBJECT('id_producto', p.id, 'producto', p.nombre, 'categoria', p.categoria, 'cantidad', dc.cantidad, 'precio_total', dc.precio_total)
+            JSON_OBJECT('id_producto', p.id, 'producto', p.nombre, 'cantidad', dc.cantidad, 'precio_total', dc.precio_total)
         ) AS productos
         FROM compras_realizadas cr
         INNER JOIN carrito c ON cr.id_carrito = c.id
@@ -13,7 +13,7 @@ export const getCompras = async (req, res) => {
         INNER JOIN productos p ON dc.id_producto = p.id
         GROUP BY cr.id, cr.id_carrito, cl.nombre, cr.referencia_pago, cr.fecha_compra, cr.estado
         ORDER BY cr.id DESC
-    `);
+`);
         res.json(resultado);
 
     } catch(error) {
@@ -26,7 +26,7 @@ export const getComprasId = async (req, res) => {
         const {id} = req.params;
         const [resultado] = await db.query(`SELECT cr.id AS id_compra, cr.id_carrito, cr.referencia_pago, cr.fecha_compra, cr.estado, cl.nombre AS cliente,
         JSON_ARRAYAGG(
-            JSON_OBJECT('id_producto', p.id, 'producto', p.nombre, 'categoria', p.categoria, 'cantidad', dc.cantidad, 'precio_total', dc.precio_total)
+            JSON_OBJECT('id_producto', p.id, 'producto', p.nombre, 'cantidad', dc.cantidad, 'precio_total', dc.precio_total)
         ) AS productos
         FROM compras_realizadas cr
         INNER JOIN carrito c ON cr.id_carrito = c.id

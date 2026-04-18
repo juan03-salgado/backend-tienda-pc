@@ -3,10 +3,12 @@ import db from "../db.js";
 export const getCarritoProducto = async (req, res) => {
     try{
         const [resultado] = await db.query(`SELECT c.id, c.cantidad, c.precio_total, c.id_carrito,
-        JSON_OBJECT('id', p.id, 'nombre', p.nombre, 'precio_unidad', p.precio_unidad, 'categoria', p.categoria, 'unidades', p.unidades
+        JSON_OBJECT('id', p.id, 'nombre', p.nombre, 'precio_unidad', p.precio_unidad, 'unidades', p.unidades, 
+        'categoria', JSON_OBJECT('id', p.id_categoria, 'nombre', cat.nombre)
         ) AS producto
         FROM carrito_producto c
         INNER JOIN productos p ON c.id_producto = p.id
+        LEFT JOIN categorias cat ON p.id_categoria = cat.id
     `);
         res.json(resultado);
 
@@ -19,10 +21,11 @@ export const getCarritoProductoId = async (req, res) => {
     try {
         const { id } = req.params;
         const [resultado] = await db.query(`SELECT c.id, c.cantidad, c.precio_total, c.id_carrito,
-            JSON_OBJECT('id', p.id, 'nombre', p.nombre, 'precio_unidad', p.precio_unidad, 'categoria', p.categoria, 'unidades', p.unidades
+            JSON_OBJECT('id', p.id, 'nombre', p.nombre, 'precio_unidad', p.precio_unidad, 'id_categoria', p.id_categoria, 'categoria_nombre', cat.nombre, 'unidades', p.unidades)
             ) AS producto
             FROM carrito_producto c
             INNER JOIN productos p ON c.id_producto = p.id
+            LEFT JOIN categorias cat ON p.id_categoria = cat.id
             WHERE c.id = ?`, 
             [id]
         );
@@ -55,6 +58,14 @@ export const añadirProductoCarrito = async (req, res) => {
 
         if(producto.length === 0){
             return res.status(404).json({ error: "Producto no encontrado"});
+        }
+        
+        const [carrito] = await db.query("SELECT id FROM carrito WHERE id = ?",
+            [id_carrito]
+        );
+
+        if (carrito.length === 0) {
+            return res.status(404).json({ error: "Carrito no existe" });
         }
 
         if(producto[0].unidades < cantidad){

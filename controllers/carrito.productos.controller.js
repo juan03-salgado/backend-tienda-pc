@@ -1,5 +1,7 @@
 import db from "../db.js";
 
+const base_url = process.env.BASE_URL || "http://10.0.2.2:3000";
+
 export const getCarritoProducto = async (req, res) => {
     try{
         const [resultado] = await db.query(`SELECT c.id, c.cantidad, c.precio_total, c.id_carrito,
@@ -45,7 +47,7 @@ export const getCarritoProductoUsuario = async (req, res) => {
         const {id} = req.params;
 
         const [resultado] = await db.query(`SELECT c.id, c.cantidad, c.precio_total, c.id_carrito,
-        JSON_OBJECT('id', p.id, 'nombre', p.nombre, 'precio_unidad', p.precio_unidad, 'unidades', p.unidades, 'imagenUrl', CONCAT('http://10.0.2.2:3000/uploads/', p.imagen), 'categoria', 
+        JSON_OBJECT('id', p.id, 'nombre', p.nombre, 'precio_unidad', p.precio_unidad, 'unidades', p.unidades, 'imagenUrl', CONCAT('${base_url}/uploads/', p.imagen), 'categoria', 
         JSON_OBJECT('id', p.id_categoria, 'nombre', cat.nombre)
         ) AS producto
         FROM carrito_producto c

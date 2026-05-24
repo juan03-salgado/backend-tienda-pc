@@ -1,10 +1,12 @@
 import db from "../db.js"
 
+const base_url = process.env.BASE_URL || "http://10.0.2.2:3000";
+
 export const getCompras = async (req, res) => {
     try{
         const [resultado] = await db.query(`SELECT cr.id AS id_compra, cr.id_carrito, cr.referencia_pago, cr.fecha_compra, cr.estado, cl.nombre AS cliente,
         JSON_ARRAYAGG(
-            JSON_OBJECT('id_producto', p.id, 'producto', p.nombre, 'cantidad', dc.cantidad, 'precio_total', dc.precio_total)
+            JSON_OBJECT('id_producto', p.id, 'producto', p.nombre, 'imagen', p.imagen, 'imagenUrl', CONCAT('${base_url}/uploads/', p.imagen), 'cantidad', dc.cantidad, 'precio_total', dc.precio_total)
         ) AS productos
         FROM compras_realizadas cr
         INNER JOIN carrito c ON cr.id_carrito = c.id
@@ -13,7 +15,7 @@ export const getCompras = async (req, res) => {
         INNER JOIN productos p ON dc.id_producto = p.id
         GROUP BY cr.id, cr.id_carrito, cl.nombre, cr.referencia_pago, cr.fecha_compra, cr.estado
         ORDER BY cr.id DESC
-`);
+    `);
         res.json(resultado);
 
     } catch(error) {
@@ -24,18 +26,20 @@ export const getCompras = async (req, res) => {
 export const getComprasId = async (req, res) => {
     try {
         const {id} = req.params;
-        const [resultado] = await db.query(`SELECT cr.id AS id_compra, cr.id_carrito, cr.referencia_pago, cr.fecha_compra, cr.estado, cl.nombre AS cliente,
-        JSON_ARRAYAGG(
-            JSON_OBJECT('id_producto', p.id, 'producto', p.nombre, 'cantidad', dc.cantidad, 'precio_total', dc.precio_total)
+
+        const [resultado] = await db.query(`
+        SELECT cr.id AS id_compra, cr.id_carrito, cr.referencia_pago, cr.fecha_compra, cr.estado, cl.nombre AS cliente,
+        JSON_ARRAYAGG( JSON_OBJECT('id_producto', p.id, 'producto', p.nombre, 'imagen_url', p.imagen, 'imagenUrl', CONCAT('${base_url}/uploads/', p.imagen), 'cantidad', dc.cantidad, 'precio_total', dc.precio_total)
         ) AS productos
         FROM compras_realizadas cr
         INNER JOIN carrito c ON cr.id_carrito = c.id
         INNER JOIN clientes cl ON c.id_cliente = cl.id
         INNER JOIN detalle_compra dc ON dc.id_compra = cr.id
         INNER JOIN productos p ON dc.id_producto = p.id
-        WHERE cr.id = ?
+        WHERE c.id_cliente = ?
         GROUP BY cr.id, cr.id_carrito, cl.nombre, cr.referencia_pago, cr.fecha_compra, cr.estado
-    `, [id]);
+        ORDER BY cr.id DESC
+        `, [id]);
 
         if(resultado.length === 0){
             return res.status(404).json({ error: "Compra no encontrada" });
@@ -47,6 +51,70 @@ export const getComprasId = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
+export const getComprasCliente = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const [resultado] = await db.query(`SELECT cr.id AS id_compra, cr.id_carrito, cr.referencia_pago, cr.fecha_compra, cr.estado, cl.nombre AS cliente,
+        JSON_ARRAYAGG(
+            JSON_OBJECT(
+            'id_producto', p.id, 
+            'producto', p.nombre, 
+            'imagen', p.imagen, 
+            'imagenUrl', CONCAT('${base_url}/uploads/', p.imagen), 
+            'cantidad', dc.cantidad, 
+            'precio_total', dc.precio_total)
+        ) AS productos
+        FROM compras_realizadas cr
+        INNER JOIN carrito c ON cr.id_carrito = c.id
+        INNER JOIN clientes cl ON c.id_cliente = cl.id
+        INNER JOIN detalle_compra dc ON dc.id_compra = cr.id
+        INNER JOIN productos p ON dc.id_producto = p.id
+        WHERE cl.id = ?
+        GROUP BY cr.id, cr.id_carrito, cl.nombre,
+        cr.referencia_pago, cr.fecha_compra, cr.estado
+        ORDER BY cr.id DESC
+        `, [id]);
+
+        res.json(resultado);
+
+    } catch(error) {
+        res.status(500).json({ error: error.message });
+    }
+}
+
+export const getComprasVendedor = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const [resultado] = await db.query(`SELECT cr.id AS id_compra, cr.id_carrito, cr.referencia_pago, cr.fecha_compra, cr.estado, cl.nombre AS cliente,
+        JSON_ARRAYAGG(
+            JSON_OBJECT(
+                'id_producto', p.id,
+                'producto', p.nombre,
+                'imagen', p.imagen,
+                'imagenUrl', CONCAT('${base_url}/uploads/', p.imagen),
+                'cantidad', dc.cantidad,
+                'precio_total', dc.precio_total)
+        ) AS productos
+        FROM compras_realizadas cr
+        INNER JOIN carrito c ON cr.id_carrito = c.id
+        INNER JOIN clientes cl ON c.id_cliente = cl.id
+        INNER JOIN detalle_compra dc ON dc.id_compra = cr.id
+        INNER JOIN productos p ON dc.id_producto = p.id
+        WHERE p.id_vendedor = ?
+        GROUP BY cr.id, cr.id_carrito, cl.nombre,
+        cr.referencia_pago, cr.fecha_compra, cr.estado
+        ORDER BY cr.id DESC
+        `, [id]);
+
+        res.json(resultado);
+
+    } catch(error) {
+        res.status(500).json({ error: error.message });
+    }
+}
 
 export const realizarCompra = async (req, res) => {
     try {
@@ -70,7 +138,7 @@ export const realizarCompra = async (req, res) => {
 
         const referenciaPago = `REF-${Date.now()}`;
 
-        const [compra] = await db.query("INSERT INTO compras_realizadas (id_carrito, referencia_pago, fecha_compra, estado) VALUES (?, ?, NOW(), 'COMPLETADA')",
+        const [compra] = await db.query("INSERT INTO compras_realizadas (id_carrito, referencia_pago, fecha_compra, estado) VALUES (?, ?, NOW(), 'PENDIENTE')",
             [id_carrito, referenciaPago]
         );
 

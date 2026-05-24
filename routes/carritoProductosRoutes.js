@@ -1,8 +1,9 @@
 import { Router } from "express";
-import { getCarritoProducto, getCarritoProductoId, añadirProductoCarrito, actualizarCarritoProductos, eliminarCarritoProductos } from "../controllers/carrito.productos.controller.js";
+import { getCarritoProducto, getCarritoProductoId, añadirProductoCarrito, actualizarCarritoProductos, eliminarCarritoProductos, getCarritoProductoUsuario } from "../controllers/carrito.productos.controller.js";
 
 const router = Router();
 
+router.get("/carrito/:id", getCarritoProductoUsuario);
 router.get("/", getCarritoProducto);
 router.get("/:id", getCarritoProductoId);
 router.post("/", añadirProductoCarrito);

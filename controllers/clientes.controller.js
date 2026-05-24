@@ -58,6 +58,11 @@ export const actualizarCliente = async(req, res) => {
     if(resultado.affectedRows === 0){
         return res.status(404).json({ error : "cliente no encontrado"})
     }
+
+    await db.query("UPDATE usuarios SET nombre_user = ? WHERE id = ?", 
+        [nombre, id_user]
+    );
+
     res.json({id, nombre, direccion, telefono, id_user})
 
     } catch (error){

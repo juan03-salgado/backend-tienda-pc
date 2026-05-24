@@ -43,6 +43,53 @@ export const getIncidenciaId = async (req, res) => {
     }
 };
 
+export const getIncidenciasCliente = async (req, res) => {
+    try {
+        const {id} = req.params;
+
+        const [resultado] = await db.query(`SELECT i.id, i.descripcion, i.fecha_reporte, i.estado,
+        JSON_OBJECT('id', u.id, 'nombre', u.nombre_user, 'email', u.email) AS usuario,
+        JSON_OBJECT('id', p.id, 'nombre', p.nombre, 'precio_unidad', p.precio_unidad,'categoria', 
+        JSON_OBJECT('id', c.id, 'nombre', c.nombre)
+        ) AS producto
+        FROM incidencias i
+        INNER JOIN usuarios u ON i.id_usuario = u.id
+        INNER JOIN productos p ON i.id_producto = p.id
+        INNER JOIN categorias c ON p.id_categoria = c.id
+        WHERE i.id_usuario = ?
+        ORDER BY i.id DESC
+    `, [id]);
+
+        res.json(resultado);
+
+    } catch(error) {
+        res.status(500).json({ error: error.message });
+    }
+}
+
+export const getIncidenciasVendedor = async (req, res) => {
+    try {
+        const {id} = req.params;
+
+        const [resultado] = await db.query(`
+            SELECT i.id, i.descripcion, i.fecha_reporte, i.estado,
+            JSON_OBJECT('id', u.id, 'nombre', u.nombre_user, 'email', u.email) AS usuario,
+            JSON_OBJECT('id', p.id, 'nombre', p.nombre, 'categoria', c.nombre) AS producto
+            FROM incidencias i
+            INNER JOIN usuarios u ON i.id_usuario = u.id
+            INNER JOIN productos p ON i.id_producto = p.id
+            INNER JOIN categorias c ON p.id_categoria = c.id
+            WHERE p.id_vendedor = ?
+            ORDER BY i.id DESC
+        `, [id]);
+
+        res.json(resultado);
+
+    } catch(error) {
+        res.status(500).json({ error: error.message });
+    }
+}
+
 export const añadirIncidencia = async (req, res) => {
     try {
         const {id_usuario, id_producto, descripcion} = req.body;
@@ -65,7 +112,7 @@ export const añadirIncidencia = async (req, res) => {
 export const actualizarEstadoIncidencia = async (req, res) => {
     try {
         const {id} = req.params;
-        const { estado } = req.body;
+        const { estado, mensaje } = req.body;
 
         const estadosValidos = ["PENDIENTE", "EN PROCESO", "RESUELTA"];
 
@@ -73,13 +120,25 @@ export const actualizarEstadoIncidencia = async (req, res) => {
             return res.status(400).json({ error: "Estado no valido"});
         }
 
-        const [resultado] = await db.query("UPDATE incidencias SET estado = ? WHERE id = ?",
+        const [actual] = await db.query("SELECT estado, id_usuario FROM incidencias WHERE id = ?",
+            [id]
+        );
+
+        if(actual.length == 0){
+            return res.status(404).json({ error: "Incidencia no encontrada"});
+        }
+
+        if(actual[0].estado === estado){
+            return res.json({ message: "El estado ya es el mismo"});
+        }
+
+        await db.query("UPDATE incidencias SET estado = ? WHERE id = ?",
             [estado, id]
         );
         
-        if(resultado.affectedRows === 0){
-            return res.status(404).json({ error: "Incidencia no encontrada"});
-        }
+        await db.query("INSERT INTO notificaciones (id_usuario, mensaje, leido, fecha) VALUES (?, ?, 0, NOW())",
+            [actual[0].id_usuario, mensaje || `Tu incidencia ahora está en estado ${estado}`]
+        );
 
         res.json({ message: "Estado actualizado correctamente", estado});
 

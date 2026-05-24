@@ -11,6 +11,7 @@ import carritoProductosRoutes from "./routes/carritoProductosRoutes.js";
 import comprasRoutes from "./routes/comprasRoutes.js";
 import incidenciasRoutes from "./routes/incidenciasRoutes.js";
 import serviciosTecnicosRoutes from "./routes/serviciosTecnicosRoutes.js";
+import notificacionesRoutes from "./routes/notificacionesRoutes.js";
 
 const app = express();
 
@@ -32,6 +33,7 @@ app.use("/productosCarrito", carritoProductosRoutes);
 app.use("/compras", comprasRoutes);
 app.use("/incidencias", incidenciasRoutes);
 app.use("/servicios", serviciosTecnicosRoutes);
+app.use("/notificaciones", notificacionesRoutes);
 
 
 const PORT = process.env.PORT || 3000;

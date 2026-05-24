@@ -48,7 +48,7 @@ export const crearUsuario = async(req, res) => {
             [clienteId]
         );
 
-        return res.json({ id: resultado.insertId, nombre_user, email, contrasena, id_rol: id_rol || 3, clienteId});
+        return res.json({usuario: { id: resultado.insertId, nombre_user, email, contrasena, id_rol: id_rol || 3, clienteId}});
 
     } catch(error){
         res.status(500).json({error: error.message});   
@@ -80,6 +80,42 @@ export const actualizarUsuario = async(req, res) => {
         res.status(500).json({error: error.message});
     }
 };
+
+export const convertirVendedor = async(req, res) => {
+    try {
+        const { id } = req.params;
+        const { telefono, direccion, nombre_tienda } = req.body;
+
+        if(!telefono || !direccion || !nombre_tienda){
+            return res.status(400).json({error: "Faltan datos"})
+        }
+        
+        const [usuario] = await db.query("SELECT id_rol FROM usuarios WHERE id = ?", [id]);
+
+        if(!usuario.length){
+            return res.status(404).json({ error: "Usuario no encontrado"});
+        }
+
+        if(usuario[0].id_rol == 2){
+            return res.status(400).json({ error: "Ya es vendedor"});
+        }
+
+        const [resultado] = await db.query("UPDATE usuarios SET id_rol = 2 WHERE id = ?", [id]);
+
+        if(resultado.affectedRows === 0){
+            return res.status(404).json({ error: "Usuarios no encontrado"});
+        }
+
+        await db.query("UPDATE clientes SET telefono = ?, direccion = ?, nombre_tienda = ? WHERE id_user = ?",
+            [telefono, direccion, nombre_tienda, id]
+        );
+
+        res.json({ message: "Ahora eres vendedor", id_rol: 2})
+
+    } catch(error) {
+        res.status(500).json({error: error.message});
+    }
+}
 
 export const eliminarUsuario = async(req, res) => {
     try{
@@ -122,6 +158,9 @@ export const loginUsuario = async(req, res) => {
     try {
         const {nombre_user, contrasena} = req.body;
 
+        const nombre = nombre_user.trim();
+        const password = contrasena.trim();
+
         if(!nombre_user || !contrasena){
             return res.status(400).json({error: "Faltan credenciales"})
         }
@@ -140,7 +179,7 @@ export const loginUsuario = async(req, res) => {
         };
 
         const [resultado] = await db.query("SELECT * FROM usuarios WHERE nombre_user = ? AND contrasena = ?",
-            [nombre_user, contrasena]
+            [nombre, password]
         );
 
         if(resultado.length === 0){
@@ -149,7 +188,7 @@ export const loginUsuario = async(req, res) => {
 
         const usuario = resultado[0];
 
-        if(usuario.id_rol === 3){
+        if(usuario.id_rol == 3 || usuario.id_rol == 2){
             const [cliente] = await db.query("SELECT id FROM clientes WHERE id_user = ?", 
                [usuario.id] 
             );

@@ -40,6 +40,28 @@ export const getCarritoProductoId = async (req, res) => {
     }
 };
 
+export const getCarritoProductoUsuario = async (req, res) => {
+    try {
+        const {id} = req.params;
+
+        const [resultado] = await db.query(`SELECT c.id, c.cantidad, c.precio_total, c.id_carrito,
+        JSON_OBJECT('id', p.id, 'nombre', p.nombre, 'precio_unidad', p.precio_unidad, 'unidades', p.unidades, 'imagenUrl', CONCAT('http://10.0.2.2:3000/uploads/', p.imagen), 'categoria', 
+        JSON_OBJECT('id', p.id_categoria, 'nombre', cat.nombre)
+        ) AS producto
+        FROM carrito_producto c
+        INNER JOIN productos p ON c.id_producto = p.id
+        LEFT JOIN categorias cat ON p.id_categoria = cat.id
+        WHERE c.id_carrito = ?
+        `, [id]
+        );
+        
+        res.json(resultado);
+
+    } catch(error){
+        return res.status(500).json({ error: error.message });
+    }
+}
+
 export const añadirProductoCarrito = async (req, res) => {
     try {
         const { id_producto, cantidad, id_carrito } = req.body;

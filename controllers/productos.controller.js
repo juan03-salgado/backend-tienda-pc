@@ -21,9 +21,11 @@ const formatoProducto = (p) => ({
 
 export const getProductos = async (req, res) => {
     try {
-        const [resultado] = await db.query(`SELECT p.*, c.nombre AS categoria_nombre
+        const [resultado] = await db.query(`SELECT p.*, c.nombre AS categoria_nombre, cl.nombre_tienda,
+        CONCAT('${process.env.BASE_URL || "http://10.0.2.2:3000"}/uploads/', p.imagen) AS imagenUrl
         FROM productos p
-        LEFT JOIN categorias c ON p.id_categoria = c.id`
+        LEFT JOIN categorias c ON p.id_categoria = c.id
+        LEFT JOIN clientes cl ON p.id_vendedor = cl.id_user`
     );
         const productos = resultado.map(formatoProducto);
         res.json(productos);
@@ -36,11 +38,12 @@ export const getProductos = async (req, res) => {
 export const getProductosId = async (req, res) => {
     try {
         const {id} = req.params;
-        const [resultado] = await db.query(`SELECT p.*, c.nombre AS categoria_nombre
+        const [resultado] = await db.query(`SELECT p.*, c.nombre AS categoria_nombre, cl.nombre_tienda, CONCAT('${process.env.BASE_URL || "http://10.0.2.2:3000"}/uploads/', p.imagen) AS imagenUrl
         FROM productos p
         LEFT JOIN categorias c ON p.id_categoria = c.id
-        WHERE p.id = ?`, 
-            [id]
+        LEFT JOIN clientes cl ON p.id_vendedor = cl.id_user
+        WHERE p.id = ?
+        `, [id]
         );
 
         if(resultado.length === 0){
@@ -55,20 +58,40 @@ export const getProductosId = async (req, res) => {
     }
 };
 
+export const getProductosVendedor = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const [resultado] = await db.query (`SELECT p.*, c.nombre AS categoria_nombre, cl.nombre_tienda, CONCAT('${process.env.BASE_URL || "http://10.0.2.2:3000"}/uploads/', p.imagen) AS imagenUrl
+        FROM productos p
+        LEFT JOIN categorias c ON p.id_categoria = c.id
+        LEFT JOIN clientes cl ON p.id_vendedor = cl.id_user
+        WHERE p.id_vendedor = ?
+        `,[id]
+    );
+        const productos = resultado.map(formatoProducto);
+        res.json(productos);
+        
+    } catch(error) {
+        res.status(500).json({ error: error.message})
+    }
+}
+
 export const crearProductos = async (req, res) => {
     try {
-        const { nombre, descripcion, id_categoria, precio_unidad, unidades } = req.body;
+        const { nombre, descripcion, id_categoria, otra_categoria, precio_unidad, unidades, id_vendedor } = req.body;
         const imagen = req.file ? req.file.filename : null;
 
         if(!nombre || precio_unidad == null || unidades == null){
             return res.status(400).json({error: "Faltan campos requeridos"});
         }
 
-        const [resultado] = await db.query("INSERT INTO productos (nombre, descripcion, id_categoria, precio_unidad, unidades, imagen) VALUES (?, ?, ?, ?, ?, ?)",
-            [nombre, descripcion, id_categoria, precio_unidad, unidades, imagen]
+        const categoriaFinal = parseInt(id_categoria) === 6 ?  otra_categoria : null; 
+
+        const [resultado] = await db.query("INSERT INTO productos (nombre, descripcion, id_categoria, otra_categoria, precio_unidad, unidades, imagen, id_vendedor) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            [nombre, descripcion, id_categoria, categoriaFinal, precio_unidad, unidades, imagen, id_vendedor]
         );
 
-        res.json({id: resultado.insertId, nombre, descripcion, id_categoria, precio_unidad, unidades, imagen: urlImagen(imagen)});
+        res.json({id: resultado.insertId, nombre, descripcion, id_categoria, categoria_nombre: categoriaFinal, precio_unidad, unidades, imagen: urlImagen(imagen), id_vendedor});
 
     } catch(error){
         res.status(500).json({ error: error.message });
@@ -78,7 +101,7 @@ export const crearProductos = async (req, res) => {
 export const actualizarProductos = async (req, res) => {
     try {
         const { id } = req.params;
-        const { nombre, descripcion, id_categoria, precio_unidad, unidades } = req.body;
+        const { nombre, descripcion, id_categoria, otra_categoria, precio_unidad, unidades } = req.body;
 
         const [productoActual] = await db.query("SELECT * FROM productos WHERE id = ?",
             [id]
@@ -102,18 +125,21 @@ export const actualizarProductos = async (req, res) => {
                 }
             }
         }
+        
+        const categoriaFinal = parseInt(id_categoria) === 6 ?  otra_categoria : producto.otra_categoria; 
 
-        await db.query("UPDATE productos SET nombre = ?, descripcion = ?, id_categoria = ?, precio_unidad = ?, unidades = ?, imagen = ? WHERE id = ?", 
-            [nombre || producto.nombre, 
-            descripcion || producto.descripcion, 
-            id_categoria || producto.id_categoria, 
+        await db.query("UPDATE productos SET nombre = ?, descripcion = ?, id_categoria = ?, otra_categoria = ?, precio_unidad = ?, unidades = ?, imagen = ? WHERE id = ?", 
+            [nombre ?? producto.nombre, 
+            descripcion ?? producto.descripcion, 
+            id_categoria ?? producto.id_categoria, 
+            categoriaFinal,
             precio_unidad ?? producto.precio_unidad,
             unidades ?? producto.unidades,
             nuevaImagen,
             id]
         );
 
-        res.json({id, nombre, descripcion, id_categoria, precio_unidad, unidades, imagen: urlImagen(nuevaImagen)});
+        res.json({id, nombre, descripcion, id_categoria, otra_categoria: categoriaFinal, precio_unidad, unidades, imagen: urlImagen(nuevaImagen)});
 
     } catch(error){
         res.status(500).json({ error: error.message });        

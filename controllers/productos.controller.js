@@ -9,7 +9,7 @@ const storage = multer.diskStorage({
 });
 
 export const upload = multer({ storage });
-const base_url = process.env.BASE_URL;
+const base_url = process.env.BASE_URL || "http://10.0.2.2:3000";
 
 const urlImagen = (archivo) => {
     return archivo ? `${base_url}/uploads/${archivo}` : null;
@@ -22,7 +22,7 @@ const formatoProducto = (p) => ({
 export const getProductos = async (req, res) => {
     try {
         const [resultado] = await db.query(`SELECT p.*, c.nombre AS categoria_nombre, cl.nombre_tienda,
-        CONCAT('${process.env.BASE_URL}/uploads/', p.imagen) AS imagenUrl
+        CONCAT('${base_url}/uploads/', p.imagen) AS imagenUrl
         FROM productos p
         LEFT JOIN categorias c ON p.id_categoria = c.id
         LEFT JOIN clientes cl ON p.id_vendedor = cl.id_user`
@@ -38,7 +38,7 @@ export const getProductos = async (req, res) => {
 export const getProductosId = async (req, res) => {
     try {
         const {id} = req.params;
-        const [resultado] = await db.query(`SELECT p.*, c.nombre AS categoria_nombre, cl.nombre_tienda, CONCAT('${process.env.BASE_URL || "http://10.0.2.2:3000"}/uploads/', p.imagen) AS imagenUrl
+        const [resultado] = await db.query(`SELECT p.*, c.nombre AS categoria_nombre, cl.nombre_tienda, CONCAT('${base_url}/uploads/', p.imagen) AS imagenUrl
         FROM productos p
         LEFT JOIN categorias c ON p.id_categoria = c.id
         LEFT JOIN clientes cl ON p.id_vendedor = cl.id_user
@@ -61,7 +61,7 @@ export const getProductosId = async (req, res) => {
 export const getProductosVendedor = async (req, res) => {
     try {
         const { id } = req.params;
-        const [resultado] = await db.query (`SELECT p.*, c.nombre AS categoria_nombre, cl.nombre_tienda, CONCAT('${process.env.BASE_URL || "http://10.0.2.2:3000"}/uploads/', p.imagen) AS imagenUrl
+        const [resultado] = await db.query (`SELECT p.*, c.nombre AS categoria_nombre, cl.nombre_tienda, CONCAT('${base_url}/uploads/', p.imagen) AS imagenUrl
         FROM productos p
         LEFT JOIN categorias c ON p.id_categoria = c.id
         LEFT JOIN clientes cl ON p.id_vendedor = cl.id_user

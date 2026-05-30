@@ -68,7 +68,7 @@ export const actualizarUsuario = async(req, res) => {
         const nuevaContrasena = contrasena && contrasena.trim() !== "" ? contrasena : usuario.contrasena;
 
         const [resultado] = await db.query("UPDATE usuarios SET nombre_user = ?, email = ?, contrasena = ?, id_rol = ? WHERE id = ?", 
-           [nombre_user, email, nuevaContrasena, id_rol, id] 
+           [nombre_user.trim(), email.trim(), nuevaContrasena, id_rol, id] 
         );
 
         if(resultado.affectedRows === 0){
@@ -161,11 +161,11 @@ export const loginUsuario = async(req, res) => {
         const nombre = nombre_user.trim();
         const password = contrasena.trim();
 
-        if(!nombre_user || !contrasena){
+        if(!nombre || !password){
             return res.status(400).json({error: "Faltan credenciales"})
         }
 
-        if(nombre_user === "User_admin" && contrasena === "Secret_password"){
+        if(nombre === "User_admin" && password === "Secret_password"){
             return res.status(200).json({
               message: "Login exitoso",
               usuario: {

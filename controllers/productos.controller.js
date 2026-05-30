@@ -126,7 +126,7 @@ export const actualizarProductos = async (req, res) => {
             }
         }
         
-        const categoriaFinal = parseInt(id_categoria) === 6 ?  otra_categoria : producto.otra_categoria; 
+        const categoriaFinal = parseInt(id_categoria) === 6 ?  otra_categoria : null; 
 
         await db.query("UPDATE productos SET nombre = ?, descripcion = ?, id_categoria = ?, otra_categoria = ?, precio_unidad = ?, unidades = ?, imagen = ? WHERE id = ?", 
             [nombre ?? producto.nombre, 
